@@ -40,6 +40,24 @@ public class FBXImportSupporter : AssetPostprocessor
 
     void OnPostprocessModel(GameObject gameObject)
     {
+        ModelImporter modelImporter = assetImporter as ModelImporter;
+        bool importSettingsMissing = modelImporter.importSettingsMissing;
+        string folderPath = Path.GetDirectoryName(assetPath);
+        string importFilePath = folderPath + "/" + IMPORT_FILE_NAME;
+        bool isAutoImport = File.Exists(importFilePath);
+
+        // 初回インポートのみ
+        if (!importSettingsMissing)
+        {
+            return;
+        }
+
+        // 自動インポートが有効化されていない場合は処理を行わない
+        if (!isAutoImport)
+        {
+            return;
+        }
+
         GetHumanDescription(gameObject);
     }
 
