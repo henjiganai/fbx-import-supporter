@@ -17,7 +17,7 @@ FBXImportSupporterEditorの自動設定有効時に設定される内容とConso
 - AnimationType: Humanoid
 
 ### 表示内容一覧
-- Mecanimのボーン名とモデルのボーン名一覧を表示
+- Mecanimのボーン名とモデルのボーン名一覧を表示  
   ※Mecanimのボーン名とモデルのボーン名が完全一致しない場合、Consoleに青文字で表示
 
 ### 注意点
