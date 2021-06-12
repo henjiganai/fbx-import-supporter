@@ -113,6 +113,8 @@ public class FBXImportSupporter : AssetPostprocessor
 
             Debug.Log($"{humanBone.humanName} : {decorationColor}{humanBone.boneName}</color>");
         }
+
+        Debug.Log("Mecanimのマッピングここまで");
     }
 
     static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
@@ -122,61 +124,61 @@ public class FBXImportSupporter : AssetPostprocessor
             return;
         }
 
-        foreach (string importedAsset in importedAssets)
+        var modelAssets = importedAssets.Where(asset =>
         {
-            ModelImporter modelImporter = AssetImporter.GetAtPath(importedAsset) as ModelImporter;
+            ModelImporter modelImporter = AssetImporter.GetAtPath(asset) as ModelImporter;
+            bool isModel = modelImporter != null ? true : false;
 
-            if (modelImporter == null)
-            {
-                Debug.Log(importedAsset);
-                Debug.Log(modelImporter);
-                continue;
-            }
-
-            bool importSettingsMissing = modelImporter.importSettingsMissing;
-            string folderPath = Path.GetDirectoryName(importedAsset);
+            string folderPath = Path.GetDirectoryName(asset);
             string autoImportFilePath = Path.Combine(folderPath, IMPORT_FILE_NAME);
             bool isAutoImport = File.Exists(autoImportFilePath);
 
-            //// 初回インポートのみ
-            //if (!importSettingsMissing)
-            //{
-            //    Debug.Log("初回インポートのみ");
-            //    return;
-            //}
-
-            // 自動インポートが有効化されていない場合は処理を行わない
-            if (!isAutoImport)
+            return isModel && isAutoImport;
+        }).Select((path) =>
+        {
+            string folderPath = Path.GetDirectoryName(path);
+            return new
             {
-                return;
-            }
+                path,
+                folderPath,
+            };
+        });
 
-            string materialsFolderPath = Path.Combine(folderPath, MATERIALS_FOLDER_NAME);
-            ExtractMaterials(importedAsset, materialsFolderPath);
+        foreach (var model in modelAssets)
+        {
+            string materialsFolderPath = Path.Combine(model.folderPath, MATERIALS_FOLDER_NAME);
+            ExtractMaterials(model.path, materialsFolderPath);
         }
+
+        Debug.Log("fbxインポート処理完了");
     }
 
-    static void ExtractMaterials(string assetPath, string folderPath)
+    static void ExtractMaterials(string modelAssetPath, string folderPath)
     {
-        IReadOnlyList<Material> materials = AssetDatabase.LoadAllAssetsAtPath(assetPath).OfType<Material>().ToList().AsReadOnly();
-        //var materials = AssetDatabase.LoadAllAssetsAtPath(assetPath).Where(x => x.GetType() == typeof(Material)).ToArray();
+        var materials = AssetDatabase.LoadAllAssetsAtPath(modelAssetPath).OfType<Material>().ToList().Where(material =>
+        {
+            string newAssetPath = Path.Combine(folderPath, material.name) + ".mat";
+            bool isNotMaterialExist = !File.Exists(newAssetPath);
+            return isNotMaterialExist;
+        }).Select(material =>
+        {
+            string assetPath = Path.Combine(folderPath, material.name) + ".mat";
+            return new
+            {
+                material,
+                assetPath,
+            };
+        });
 
         HashSet<string> assetsToReload = new HashSet<string>();
 
-        foreach (Material material in materials)
+        foreach (var material in materials)
         {
-            string newAssetPath = Path.Combine(folderPath, material.name) + ".mat";
-            Debug.Log("マテリアル名：" + newAssetPath);
-
-            if (File.Exists(newAssetPath))
-            {
-                continue;
-            }
-
-            string error = AssetDatabase.ExtractAsset(material, newAssetPath);
+            string error = AssetDatabase.ExtractAsset(material.material, material.assetPath);
             if (string.IsNullOrEmpty(error))
             {
-                assetsToReload.Add(assetPath);
+                Debug.Log($"マテリアル生成：{material.assetPath}");
+                assetsToReload.Add(modelAssetPath);
             }
         }
 
