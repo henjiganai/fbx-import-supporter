@@ -80,6 +80,7 @@ public class FBXImportSupporter : AssetPostprocessor
         ModelImporter modelImporter = assetImporter as ModelImporter;
 
         modelImporter.importBlendShapeNormals = ModelImporterNormals.None;
+        modelImporter.isReadable = true;
         modelImporter.animationType = ModelImporterAnimationType.Human;
     }
 
